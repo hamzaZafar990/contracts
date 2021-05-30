@@ -1,3 +1,6 @@
+
+
+
 pragma solidity ^0.8.0;
 
 
@@ -5,55 +8,37 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 //import "@openzeppelin/contracts/access/Roles.sol";
 
-contract farbeToken is ERC721, ERC721URIStorage, AccessControl {
+
+contract farbeToken is ERC721, ERC721URIStorage, AccessControl{
     
-  //  using Counters for Counters.Counter;
- //   using AccessControl for Roles.Role;
-    
-   // Counters.Counter private tokenIds;
-    
-    /*
-     * defined roles for the users
-     * 
-     * 
-    */
-    //Roles.Role private Artists;
-    //Roles.Role private Buyers;
-     struct artiFactDetails{
+    struct artiFactDetails{
         address creator; 
         uint basePrice;
         uint noOfCopies;
-        
-        
     }
     
+    bool checkValue;
+    address contractAddress;
+    uint [] escrowedTokens;
     uint tokenCounter;
     mapping(uint=>artiFactDetails) tokenDetails;
-    /*mapping(uint=>uint) bidRecordPrice;
-    mapping(uint=>uint) listingRecordPrice;
-    mapping(uint=>address) bidRecordofAddress;
-    mapping(uint=>address) listingRecordofAddress;
-     
-    mapping (uint256 => address) approvedAddresses ;*/
     
     
-   
-    
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    
-    
- 
-
     constructor() ERC721("farbe", "fbr") {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(MINTER_ROLE, msg.sender);
         tokenCounter=0;
-    }  
-
-    function safeMint(address to, uint256 tokenId) public {
-        require(hasRole(MINTER_ROLE, msg.sender));
+        checkValue=false;
+    }
+    
+    
+    function safeMint
+    (address to, 
+    uint256 tokenId) 
+    public {
+        require(hasRole("Artists", msg.sender),"not authorized to mint tokens");
         _safeMint(to, tokenId);
     }
 
@@ -85,9 +70,10 @@ contract farbeToken is ERC721, ERC721URIStorage, AccessControl {
     
     
     
-    function addArtist(address add) public returns (bool)
+    function addArtist(address add) 
+    public returns (bool)
     {
-     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender),"not authorized to add artists");
     grantRole("Artists", add);
     return true;
     }
@@ -95,107 +81,79 @@ contract farbeToken is ERC721, ERC721URIStorage, AccessControl {
 
     function addBuyer(address add) public returns (bool)
    { 
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
+     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender),"not authorized to add buyers");
      grantRole("Artists", add);
-   // _setupRole(Buyers, msg.sender);
-    return true;
+     return true;
    }
    
    
-   function mintTokenAndList(string memory  _url,address add,uint price,uint copies) public returns(bool){
-
-   require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-   require(hasRole("Artists", add));
-   artiFactDetails memory newtokenDetails= artiFactDetails(add,price,copies);
-   tokenCounter++;
-    _safeMint(add, tokenCounter);
-    //listingRecordPrice[tokenCounter]=price;
-    //listingRecordofAddress[tokenCounter]=add;
-    //tokenDetails[tokenCounter]=newtokenDetails;
- /*  for(uint i=0;i<_copies;i++){
-    uint _id=urlList.push(_url);
-    _mint(msg.sender,_id);
-    artiFact memory tempArtifact= artiFact(_id,_url,_copies,price);
-    Records[msg.sender]=tempArtifact; 
-   }*/
-    return true;
-
-   }
-   
-   
-   function mintToken(string memory  _url,address add,uint price,uint copies) public returns(bool){
-
-   require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender));
-   //require(hasRole("Artists", add));
-   artiFactDetails memory newtokenDetails= artiFactDetails(add,price,copies);
-   tokenCounter++;
-    _safeMint(add, tokenCounter);
-  // bidRecordPrice[tokenCounter]=price;
-  // bidRecordofAddress[tokenCounter]=add;
-   //[tokenCounter]=newtokenDetails;
- /* for(uint i=0;i<_copies;i++){
-    uint _id=urlList.push(_url);
-    _mint(msg.sender,_id);
-    artiFact memory tempArtifact= artiFact(_id,_url,_copies,price);
-    Records[msg.sender]=tempArtifact; 
-   }*/
-    return true;
-
-   }
-   
-   
-   // transfer the tokens to our intermediatery contracts
-   
-   function giveRight(uint tokenID,address artist,address escrow) public returns(bool){
-       _safeTransfer( artist,  escrow,  tokenID, "");
-       //super.safeTransferFrom( artist,  escrow,  tokenID,"");
-   }
-   
-   
-   
-  // function mintTokenAndList(string memory  _url,address add,uint price,uint copies) public returns(bool){
-   
-   
-   
-   
-  /* function makeBid(uint tokenID,uint amount) public returns(bool){
-   
-       require(amount>bidRecordPrice[tokenID],"current price is greater than bid price");
-       bidRecordPrice[tokenID]=amount;
-       bidRecordofAddress[tokenID]=msg.sender;
-       return true;
-   }
-   
-   
-   function getBids(uint tokenID) public view returns(uint){
-       
+   function mintToken
+   (uint price,uint copies,string memory url)
+   public returns(bool)
+   {
+    require(hasRole("Artists", msg.sender),"not authorized to add buyers");
+    artiFactDetails memory newtokenDetails= artiFactDetails(msg.sender,price,copies);
+    for(uint i=1;i<=copies;i++)
+    {
+        tokenCounter++;
+        _safeMint(msg.sender, tokenCounter);
+        _setTokenURI(tokenCounter, url);
+        tokenDetails[tokenCounter]=newtokenDetails;
+    }
     
-    return bidRecordPrice[tokenID];
-       
+    return true;
    }
-   */
    
    
-   
-   
-   
-    
+   function getCreator(uint id)
+   public returns(address ){
+       address add=tokenDetails[id].creator;
+       return add;
+       }
+       
 }
 
 
+contract farbeArtAuction is farbeToken{
+    
 
+  address AuctionHandler;
+  IERC721 addr;
+ 
+ 
+   function setAuctionAddress(address add) 
+   public returns(bool)
+   {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender),"not authorized to add artists");
+        contractAddress=add;
+         addr = IERC721(add);
+    }
+    
+    
+    function listForAuction(uint tokenID)
+    public payable returns(bool)
+    {
+        require(hasRole("Artists", msg.sender),"not a authorized artist");
+        address temp=0x6Dff488192F2D820AEB354Ee0fe0baf81071c784;
 
-
-
-
-
-
-
-
-
-
-
-
+        safeTransferFrom(msg.sender,temp,tokenID,"");
+    }
+    
+    function listForAuction2(uint tokenID)
+    public returns(bool)
+    {
+        require(hasRole("Artists", msg.sender),"not a authorized artist");
+        safeTransferFrom(msg.sender,address(addr),tokenID,"");
+    }
+    
+    
+    function returnAddress()
+    public view returns(address)
+    {
+        return address(this);
+    }
+    
+}
 
 
 
